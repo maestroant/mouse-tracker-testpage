@@ -34,7 +34,6 @@
         <div class="controls small">
           <label><input id="toggleDrawMoves" type="checkbox" checked/> Движение</label>
           <label><input id="toggleDrawClicks" type="checkbox" checked/> Клики</label>
-          <label><input id="toggleSmooth" type="checkbox" /> Сглаживание (интерполяция)</label>
         </div>
       </div>
 
@@ -73,12 +72,9 @@
   </div>
 
 <script>
-// Mouse / Pointer tracker
-// Сохраняет все pointermove/pointerdown/pointerup с timestamp, рисует траекторию.
 (function(){
   const canvas = document.getElementById('drawCanvas');
   const ctx = canvas.getContext('2d');
-  const textInput = document.getElementById('textInput');
   const testButton = document.getElementById('testButton');
   const clearBtn = document.getElementById('clearBtn');
   const exportBtn = document.getElementById('exportBtn');
@@ -87,7 +83,6 @@
   const info = document.getElementById('info');
   const toggleDrawMoves = document.getElementById('toggleDrawMoves');
   const toggleDrawClicks = document.getElementById('toggleDrawClicks');
-  const toggleSmooth = document.getElementById('toggleSmooth');
   const savedList = document.getElementById('savedList');
 
   let w = 0, h = 0;
@@ -103,18 +98,14 @@
   window.addEventListener('resize', resize);
   setTimeout(resize,50);
 
-  // stored traces
-  let trace = []; // текущая сессия
-  let importedTraces = []; // массив загруженных трасс для сравнения
+  let trace = [];
+  let importedTraces = [];
 
   function now(){ return performance.now(); }
 
-  // drawing settings
   const moveRadius = 2;
-  const clickRadius = 8;
+  const clickRadius = 6;
 
-  // Stats
-  let lastEventTime = 0;
   let eventCount = 0;
   let evtWindow = [];
 
@@ -123,44 +114,30 @@
     info.textContent = `Координаты: ${x!==undefined?Math.round(x)+','+Math.round(y):'—'} | Событий в сессии: ${eventCount} | Частота: ${freq.toFixed(1)} evt/s`;
   }
 
-  // draw helpers
   function drawDot(x,y, color, r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); }
-  function drawLine(x1,y1,x2,y2,color,wid){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.strokeStyle=color; ctx.lineWidth=wid; ctx.stroke(); }
 
   function clearCanvas(){ ctx.clearRect(0,0,w,h); }
 
   function redraw(){
     clearCanvas();
-    // draw imported traces first (overlay)
     for(const imp of importedTraces){
       drawTrace(imp, true);
     }
-    // draw current trace
     drawTrace(trace, false);
   }
 
   function drawTrace(tarr, asOverlay){
     if(!tarr || tarr.length===0) return;
-    // draw moves as thin line (black) if enabled
-    let prev = null;
     for(const ev of tarr){
       if(ev.type === 'move'){
         if(toggleDrawMoves.checked){
-          if(prev && prev.type==='move'){
-            drawLine(prev.x,prev.y,ev.x,ev.y, asOverlay? 'rgba(0,0,255,0.3)' : 'black', asOverlay?1:1);
-          } else {
-            drawDot(ev.x,ev.y, asOverlay? 'rgba(0,0,255,0.3)' : 'black', moveRadius);
-          }
+          drawDot(ev.x,ev.y, asOverlay? 'rgba(0,0,255,0.3)' : 'black', moveRadius);
         }
-        prev = ev;
       } else if(ev.type === 'down'){
         if(toggleDrawClicks.checked){
           const color = buttonColor(ev.button);
           drawDot(ev.x,ev.y, color, clickRadius);
-          // ring
-          ctx.beginPath(); ctx.arc(ev.x,ev.y, clickRadius+4,0,Math.PI*2); ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
         }
-        prev = ev;
       }
     }
   }
@@ -171,7 +148,6 @@
     return 'blue';
   }
 
-  // pointer events capture
   function captureEvent(e){
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -181,43 +157,25 @@
     trace.push(rec);
     eventCount++;
     evtWindow.push(t);
-    // keep last 100 timestamps for frequency
     if(evtWindow.length>100) evtWindow.shift();
     updateInfo(x,y);
-    // draw incrementally to be responsive
-    if(e.type==='pointermove'){
+    if(ev.type==='pointermove'){
       if(toggleDrawMoves.checked){
-        const prev = trace.filter(r=>r.type==='move').slice(-2)[0];
-        if(prev){ drawLine(prev.x,prev.y,rec.x,rec.y, 'black',1); }
-        else drawDot(rec.x,rec.y,'black',moveRadius);
+        drawDot(x,y,'black',moveRadius);
       }
-    } else if(e.type==='pointerdown'){
+    } else if(ev.type==='pointerdown'){
       if(toggleDrawClicks.checked){
         const color = buttonColor(e.button);
-        drawDot(rec.x,rec.y,color,clickRadius);
+        drawDot(x,y,color,clickRadius);
       }
     }
   }
 
-  // Attach to the canvas area so coordinates relative to canvas
   canvas.addEventListener('pointermove', captureEvent);
   canvas.addEventListener('pointerdown', captureEvent);
   canvas.addEventListener('pointerup', captureEvent);
-  // Prevent context menu to allow right-click capture
   canvas.addEventListener('contextmenu', e=>{ e.preventDefault(); });
 
-  // Also listen to the button and input so user interactions there are captured
-  testButton.addEventListener('pointerdown', (e)=>{
-    // let the pointer event handler above capture it, but also focus the button normally
-    // no extra action needed
-  });
-
-  // periodic redraw (in case toggles change or import)
-  setInterval(()=>{
-    redraw();
-  }, 300);
-
-  // clear
   clearBtn.addEventListener('click', ()=>{
     trace = [];
     eventCount = 0; evtWindow = [];
@@ -225,7 +183,6 @@
     redraw();
   });
 
-  // export
   function downloadJSON(obj, filename){
     const blob = new Blob([JSON.stringify(obj, null, 2)],{type:'application/json'});
     const url = URL.createObjectURL(blob);
@@ -246,7 +203,6 @@
         if(Array.isArray(obj.trace)){
           importedTraces.push(obj.trace.map(x=>Object.assign({},x)));
           redraw();
-          // save to savedList
           const opt = document.createElement('option'); opt.value = importedTraces.length-1; opt.textContent = `import ${importedTraces.length} — ${f.name}`;
           savedList.appendChild(opt);
         } else alert('Файл не содержит поле trace[]');
@@ -255,41 +211,7 @@
     reader.readAsText(f);
   });
 
-  savedList.addEventListener('change', ()=>{
-    const v = savedList.value;
-    if(v==='') return;
-    const idx = Number(v);
-    // focus on chosen imported trace by temporarily clearing overlay and drawing only it
-    redraw();
-  });
-
-  // simple playback of current trace
-  function playTrace(tarr, speed=1){
-    if(!tarr || tarr.length===0) return;
-    // create overlay canvas animation
-    const start = tarr[0].t;
-    const copy = tarr.slice();
-    let i=0;
-    function step(){
-      if(i>=copy.length) return;
-      const ev = copy[i++];
-      // draw as overlay in blue
-      if(ev.type==='move') drawDot(ev.x,ev.y,'rgba(0,120,200,0.9)',3);
-      if(ev.type==='down') { ctx.beginPath(); ctx.arc(ev.x,ev.y,10,0,Math.PI*2); ctx.strokeStyle='rgba(0,120,200,0.9)'; ctx.lineWidth=2; ctx.stroke(); }
-      if(i<copy.length) {
-        const dt = (copy[i].t - ev.t)/speed;
-        setTimeout(step, Math.max(0,dt));
-      }
-    }
-    step();
-  }
-
-  // small UI: play on doubleclick canvas
-  canvas.addEventListener('dblclick', ()=>{ playTrace(trace,4); });
-
-  // initialize info
   updateInfo();
-
 })();
 </script>
 </body>
