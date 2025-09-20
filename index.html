@@ -20,14 +20,15 @@
       left: 0;
       width: 100%;
       height: 100%;
+      z-index: 0;
     }
     #centerButton {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 5px 10px;
-      font-size: 12px;
+      padding: 20px 40px;
+      font-size: 18px;
       z-index: 1;
     }
     #controls {
@@ -50,7 +51,7 @@
     <input type="file" id="importFile" style="display:none" />
     <button id="importBtn">Импорт JSON</button>
   </div>
-  
+
   <script>
     const canvas = document.getElementById("tracker");
     const ctx = canvas.getContext("2d");
@@ -68,12 +69,9 @@
 
     function renderTrace(trace) {
       trace.forEach(evt => {
-        if (evt.type === "move") {
-          drawPoint(evt.x, evt.y, "black", 2);
-        } else if (evt.type === "down") {
-          let color = "blue";
-          if (evt.button === 0) color = "green";
-          if (evt.button === 2) color = "red";
+        if (evt.type === "move") drawPoint(evt.x, evt.y, "black", 2);
+        else if (evt.type === "down") {
+          let color = evt.button === 0 ? "green" : evt.button === 2 ? "red" : "blue";
           drawPoint(evt.x, evt.y, color, 4);
         }
       });
@@ -83,31 +81,21 @@
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const evt = {
-        x: x,
-        y: y,
-        t: Date.now(),
-        type: type,
-        button: e.button ?? -1
-      };
+      const evt = { x, y, t: Date.now(), type, button: e.button ?? -1 };
       events.push(evt);
 
-      if (type === "move") {
-        drawPoint(x, y, "black", 2);
-      } else if (type === "down") {
-        let color = "blue";
-        if (e.button === 0) color = "green";
-        if (e.button === 2) color = "red";
+      if (type === "move") drawPoint(x, y, "black", 2);
+      else if (type === "down") {
+        let color = e.button === 0 ? "green" : e.button === 2 ? "red" : "blue";
         drawPoint(x, y, color, 4);
       }
     }
 
-    canvas.addEventListener("mousemove", e => logEvent("move", e));
-    canvas.addEventListener("mousedown", e => logEvent("down", e));
-    canvas.addEventListener("mouseup", e => logEvent("up", e));
-
-    document.getElementById("centerButton").addEventListener("mousedown", e => logEvent("down", e));
-    document.getElementById("centerButton").addEventListener("mouseup", e => logEvent("up", e));
+    // Общий обработчик для canvas и кнопки
+    ['mousemove', 'mousedown', 'mouseup'].forEach(evtType => {
+      canvas.addEventListener(evtType, e => logEvent(evtType === 'mousemove' ? 'move' : evtType, e));
+      document.getElementById('centerButton').addEventListener(evtType, e => logEvent(evtType === 'mousemove' ? 'move' : evtType, e));
+    });
 
     document.getElementById("clearBtn").addEventListener("click", () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -134,9 +122,7 @@
       reader.onload = e => {
         try {
           const data = JSON.parse(e.target.result);
-          if (data.trace) {
-            renderTrace(data.trace);
-          }
+          if (data.trace) renderTrace(data.trace);
         } catch (err) {
           alert("Ошибка при загрузке JSON");
         }
