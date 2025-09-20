@@ -1,218 +1,119 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mouse / Pointer Tracker — тест для Playwright</title>
+  <meta charset="UTF-8">
+  <title>Mouse Tracker Test</title>
   <style>
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, sans-serif;background:#f0f0f0}
-    .wrap{height:100%;display:flex;align-items:center;justify-content:center}
-    .card{background:white;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);width:980px;max-width:96%;min-height:560px;position:relative;overflow:hidden}
-    .topbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid #eee;align-items:center}
-    .controls{display:flex;gap:8px;align-items:center}
-    .center-area{display:flex;gap:20px;padding:20px}
-    .form{flex:0 0 320px;display:flex;flex-direction:column;gap:8px}
-    input[type=text]{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px}
-    button{padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer}
-    button.primary{background:#0078d4;color:white;border-color:#0066b0}
-    .canvas-wrap{flex:1;position:relative;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fff,#fafafa)}
-    canvas{display:block;width:100%;height:100%}
-    .overlay-info{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,0.9);padding:8px;border-radius:8px;border:1px solid #eee;font-size:13px}
-    .legend{display:flex;gap:8px;align-items:center}
-    .dot{width:12px;height:12px;border-radius:50%}
-    .small{font-size:12px;color:#666}
-    .file-input{display:none}
-    .row{display:flex;gap:8px;align-items:center}
+    body {
+      margin: 0;
+      padding: 0;
+      background: white;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #centerButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 18px;
+      z-index: 1;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px;
+      border-radius: 6px;
+      z-index: 2;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="topbar">
-        <div style="font-weight:600">Mouse / Pointer Tracker — тест для Playwright</div>
-        <div style="flex:1"></div>
-        <div class="controls small">
-          <label><input id="toggleDrawMoves" type="checkbox" checked/> Движение</label>
-          <label><input id="toggleDrawClicks" type="checkbox" checked/> Клики</label>
-        </div>
-      </div>
-
-      <div class="center-area">
-        <div class="form">
-          <label>Тестовое поле (введите текст):</label>
-          <input id="textInput" type="text" placeholder="Например: тест Playwright" />
-          <div class="row">
-            <button id="testButton" class="primary">Нажать меня</button>
-            <button id="clearBtn">Очистить</button>
-            <button id="exportBtn">Экспорт JSON</button>
-            <label class="file-input">
-              <input id="importFile" type="file" accept="application/json" />
-            </label>
-            <button id="importBtn">Импорт JSON</button>
-          </div>
-          <div class="small">Сохранённые трассы: <select id="savedList"><option value="">—</option></select></div>
-          <div style="height:8px"></div>
-          <div class="small">Инфо:</div>
-          <div id="info" class="small">Координаты: — | Событий в сессии: 0 | Частота: 0 evt/s</div>
-          <div style="flex:1"></div>
-          <div class="small">Инструкция: откройте страницу локально или на тестовом сервере и прогоняйте робота/пользователя. Кнопка "Экспорт JSON" скачает трассу. Импорт — загрузит и наложит трассу для сравнения.</div>
-        </div>
-
-        <div class="canvas-wrap">
-          <canvas id="drawCanvas"></canvas>
-          <div class="overlay-info">
-            <div class="legend"><div class="dot" style="background:black"></div> движение</div>
-            <div class="legend"><div class="dot" style="background:green"></div> левый клик</div>
-            <div class="legend"><div class="dot" style="background:red"></div> правый клик</div>
-            <div class="legend"><div class="dot" style="background:blue"></div> средний / колесо</div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <canvas id="tracker"></canvas>
+  <button id="centerButton">Нажми меня</button>
+  <div id="controls">
+    <button id="clearBtn">Очистить</button>
+    <button id="exportBtn">Экспорт JSON</button>
   </div>
+  
+  <script>
+    const canvas = document.getElementById("tracker");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-<script>
-(function(){
-  const canvas = document.getElementById('drawCanvas');
-  const ctx = canvas.getContext('2d');
-  const testButton = document.getElementById('testButton');
-  const clearBtn = document.getElementById('clearBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const importBtn = document.getElementById('importBtn');
-  const importFile = document.getElementById('importFile');
-  const info = document.getElementById('info');
-  const toggleDrawMoves = document.getElementById('toggleDrawMoves');
-  const toggleDrawClicks = document.getElementById('toggleDrawClicks');
-  const savedList = document.getElementById('savedList');
+    let events = [];
 
-  let w = 0, h = 0;
-  function resize(){
-    const ratio = window.devicePixelRatio || 1;
-    w = canvas.clientWidth = canvas.parentElement.clientWidth;
-    h = canvas.clientHeight = canvas.parentElement.clientHeight;
-    canvas.width = Math.round(w * ratio);
-    canvas.height = Math.round(h * ratio);
-    ctx.setTransform(ratio,0,0,ratio,0,0);
-    redraw();
-  }
-  window.addEventListener('resize', resize);
-  setTimeout(resize,50);
-
-  let trace = [];
-  let importedTraces = [];
-
-  function now(){ return performance.now(); }
-
-  const moveRadius = 2;
-  const clickRadius = 6;
-
-  let eventCount = 0;
-  let evtWindow = [];
-
-  function updateInfo(x,y){
-    const freq = evtWindow.length ? (evtWindow.length / Math.max(1,( (evtWindow[evtWindow.length-1] - (evtWindow[0]||0)) / 1000 ))) : 0;
-    info.textContent = `Координаты: ${x!==undefined?Math.round(x)+','+Math.round(y):'—'} | Событий в сессии: ${eventCount} | Частота: ${freq.toFixed(1)} evt/s`;
-  }
-
-  function drawDot(x,y, color, r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); }
-
-  function clearCanvas(){ ctx.clearRect(0,0,w,h); }
-
-  function redraw(){
-    clearCanvas();
-    for(const imp of importedTraces){
-      drawTrace(imp, true);
+    function drawPoint(x, y, color = "black", radius = 2) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
-    drawTrace(trace, false);
-  }
 
-  function drawTrace(tarr, asOverlay){
-    if(!tarr || tarr.length===0) return;
-    for(const ev of tarr){
-      if(ev.type === 'move'){
-        if(toggleDrawMoves.checked){
-          drawDot(ev.x,ev.y, asOverlay? 'rgba(0,0,255,0.3)' : 'black', moveRadius);
-        }
-      } else if(ev.type === 'down'){
-        if(toggleDrawClicks.checked){
-          const color = buttonColor(ev.button);
-          drawDot(ev.x,ev.y, color, clickRadius);
-        }
+    function logEvent(type, e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const evt = {
+        x: x,
+        y: y,
+        t: Date.now(),
+        type: type,
+        button: e.button ?? -1
+      };
+      events.push(evt);
+
+      if (type === "move") {
+        drawPoint(x, y, "black", 2);
+      } else if (type === "down") {
+        let color = "blue";
+        if (e.button === 0) color = "green";
+        if (e.button === 2) color = "red";
+        drawPoint(x, y, color, 4);
       }
     }
-  }
 
-  function buttonColor(btn){
-    if(btn===0) return 'green';
-    if(btn===2) return 'red';
-    return 'blue';
-  }
+    canvas.addEventListener("mousemove", e => logEvent("move", e));
+    canvas.addEventListener("mousedown", e => logEvent("down", e));
+    canvas.addEventListener("mouseup", e => logEvent("up", e));
 
-  function captureEvent(e){
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const t = Date.now();
-    const rec = {x,y,t,type: e.type==='pointermove' ? 'move' : (e.type==='pointerdown'?'down':'up'), button: e.button};
-    trace.push(rec);
-    eventCount++;
-    evtWindow.push(t);
-    if(evtWindow.length>100) evtWindow.shift();
-    updateInfo(x,y);
-    if(ev.type==='pointermove'){
-      if(toggleDrawMoves.checked){
-        drawDot(x,y,'black',moveRadius);
-      }
-    } else if(ev.type==='pointerdown'){
-      if(toggleDrawClicks.checked){
-        const color = buttonColor(e.button);
-        drawDot(x,y,color,clickRadius);
-      }
-    }
-  }
+    document.getElementById("centerButton").addEventListener("mousedown", e => logEvent("down", e));
+    document.getElementById("centerButton").addEventListener("mouseup", e => logEvent("up", e));
 
-  canvas.addEventListener('pointermove', captureEvent);
-  canvas.addEventListener('pointerdown', captureEvent);
-  canvas.addEventListener('pointerup', captureEvent);
-  canvas.addEventListener('contextmenu', e=>{ e.preventDefault(); });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      events = [];
+    });
 
-  clearBtn.addEventListener('click', ()=>{
-    trace = [];
-    eventCount = 0; evtWindow = [];
-    updateInfo();
-    redraw();
-  });
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const data = { meta: { created: new Date().toISOString() }, trace: events };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "trace.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
 
-  function downloadJSON(obj, filename){
-    const blob = new Blob([JSON.stringify(obj, null, 2)],{type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
-    URL.revokeObjectURL(url);
-  }
-  exportBtn.addEventListener('click', ()=>{
-    downloadJSON({meta:{created: new Date().toISOString()},trace}, 'trace-'+Date.now()+'.json');
-  });
-
-  importBtn.addEventListener('click', ()=> importFile.click());
-  importFile.addEventListener('change', (ev)=>{
-    const f = ev.target.files[0]; if(!f) return;
-    const reader = new FileReader();
-    reader.onload = e=>{
-      try{
-        const obj = JSON.parse(e.target.result);
-        if(Array.isArray(obj.trace)){
-          importedTraces.push(obj.trace.map(x=>Object.assign({},x)));
-          redraw();
-          const opt = document.createElement('option'); opt.value = importedTraces.length-1; opt.textContent = `import ${importedTraces.length} — ${f.name}`;
-          savedList.appendChild(opt);
-        } else alert('Файл не содержит поле trace[]');
-      }catch(err){ alert('Ошибка парсинга JSON: '+err.message); }
-    };
-    reader.readAsText(f);
-  });
-
-  updateInfo();
-})();
-</script>
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
 </body>
 </html>
