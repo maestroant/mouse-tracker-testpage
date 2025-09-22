@@ -20,6 +20,7 @@
       width: 100%;
       height: 100%;
       z-index: 0;
+      pointer-events: none; /* холст не блокирует события */
     }
     #centerButton {
       position: absolute;
@@ -74,7 +75,6 @@
     let overlays = [];
 
     function fitCanvas(){
-      // preserve current drawings
       const prevEvents = events.slice();
       const prevOverlays = overlays.slice();
       canvas.width = window.innerWidth;
@@ -114,14 +114,11 @@
 
     function redrawAll(recorded = events, loaded = overlays){
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      // draw overlays first
       for(const tr of loaded) renderTrace(tr, true);
-      // then recorded
       renderTrace(recorded, false);
     }
 
     function logEvent(type, e){
-      // compute coordinates relative to canvas
       const rect = canvas.getBoundingClientRect();
       const x = Math.round(e.clientX - rect.left);
       const y = Math.round(e.clientY - rect.top);
@@ -129,7 +126,6 @@
 
       events.push(evt);
 
-      // immediate draw
       if(type === 'move') drawPoint(x,y,'black',2);
       else if(type === 'down'){
         const color = evt.button === 0 ? 'green' : evt.button === 2 ? 'red' : 'blue';
@@ -137,17 +133,14 @@
       }
     }
 
-    // attach pointer events to both canvas and button so clicks on button are drawn
     function attachPointerListeners(target){
       target.addEventListener('pointermove', e => logEvent('move', e));
       target.addEventListener('pointerdown', e => { e.preventDefault(); logEvent('down', e); });
       target.addEventListener('pointerup', e => { e.preventDefault(); logEvent('up', e); });
     }
 
-    attachPointerListeners(canvas);
-    attachPointerListeners(centerButton);
+    attachPointerListeners(document);
 
-    // prevent context menu so right-clicks are captured without menu interrupt
     document.addEventListener('contextmenu', e => e.preventDefault());
 
     clearBtn.addEventListener('click', () => {
@@ -179,7 +172,6 @@
       reader.readAsText(f);
     });
 
-    // keep button functional for Playwright tests (it receives clicks normally)
     centerButton.addEventListener('click', () => {});
 
   </script>
