@@ -4,15 +4,13 @@
   <meta charset="UTF-8">
   <title>Mouse Tracker Test</title>
   <style>
+    html,body{height:100%;margin:0}
     body {
       margin: 0;
       padding: 0;
       background: white;
       overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
     }
     canvas {
       position: absolute;
@@ -23,114 +21,169 @@
       z-index: 0;
     }
     #centerButton {
-      width: 60px;
-      height: 30px;
-      border-radius: 20px; /* овальная форма */
-      font-size: 12px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 48px;
+      line-height: 48px;
+      border-radius: 24px; /* овальная */
+      font-size: 16px;
+      z-index: 2;
+      cursor: pointer;
+      user-select: none;
     }
     #controls {
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.9);
       padding: 8px;
       border-radius: 6px;
-      z-index: 2;
+      z-index: 3;
+      display: flex;
+      gap:6px;
+      align-items:center;
     }
+    button.ctrl{padding:6px 10px}
   </style>
 </head>
 <body>
   <canvas id="tracker"></canvas>
   <button id="centerButton">Нажми меня</button>
   <div id="controls">
-    <button id="clearBtn">Очистить</button>
-    <button id="exportBtn">Экспорт JSON</button>
-    <input type="file" id="importFile" style="display:none" />
-    <button id="importBtn">Импорт JSON</button>
+    <button id="clearBtn" class="ctrl">Очистить</button>
+    <button id="exportBtn" class="ctrl">Экспорт JSON</button>
+    <input type="file" id="importFile" style="display:none" accept="application/json" />
+    <button id="importBtn" class="ctrl">Импорт JSON</button>
   </div>
 
   <script>
-    const canvas = document.getElementById("tracker");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const canvas = document.getElementById('tracker');
+    const ctx = canvas.getContext('2d');
+    const centerButton = document.getElementById('centerButton');
+    const clearBtn = document.getElementById('clearBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
 
-    let events = [];
+    function fitCanvas(){
+      // preserve current drawings by redrawing from arrays after resize
+      const prevEvents = events.slice();
+      const prevOverlays = overlays.slice();
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      redrawAll(prevEvents, prevOverlays);
+    }
 
-    function drawPoint(x, y, color = "black", radius = 2) {
-      ctx.fillStyle = color;
+    window.addEventListener('resize', fitCanvas);
+    fitCanvas();
+
+    let events = [];      // recorded during this session
+    let overlays = [];    // imported traces (array of traces)
+
+    function drawPoint(x,y,color='black',r=2){
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle = color;
       ctx.fill();
     }
 
-    function renderTrace(trace) {
-      trace.forEach(evt => {
-        if (evt.type === "move") drawPoint(evt.x, evt.y, "black", 2);
-        else if (evt.type === "down") {
-          let color = evt.button === 0 ? "green" : evt.button === 2 ? "red" : "blue";
-          drawPoint(evt.x, evt.y, color, 4);
+    function renderTrace(trace, asOverlay=false){
+      if(!trace || !trace.length) return;
+      for(const ev of trace){
+        if(ev.type === 'move'){
+          const col = asOverlay ? 'rgba(0,0,255,0.25)' : 'black';
+          drawPoint(ev.x, ev.y, col, 2);
+        } else if(ev.type === 'down'){
+          const base = ev.button === 0 ? 'green' : ev.button === 2 ? 'red' : 'blue';
+          const col = asOverlay ? mixAlpha(base,0.35) : base;
+          drawPoint(ev.x, ev.y, col, 5);
         }
-      });
-    }
-
-    function logEvent(type, e) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const evt = { x, y, t: Date.now(), type, button: e.button ?? -1 };
-      events.push(evt);
-
-      if (type === "move") drawPoint(x, y, "black", 2);
-      else if (type === "down") {
-        let color = e.button === 0 ? "green" : e.button === 2 ? "red" : "blue";
-        drawPoint(x, y, color, 4);
       }
     }
 
-    // Общий обработчик для canvas и кнопки
-    ['mousemove', 'mousedown', 'mouseup'].forEach(evtType => {
-      canvas.addEventListener(evtType, e => logEvent(evtType === 'mousemove' ? 'move' : evtType, e));
-      document.getElementById('centerButton').addEventListener(evtType, e => logEvent(evtType === 'mousemove' ? 'move' : evtType, e));
-    });
+    function mixAlpha(colorName, alpha){
+      // small helper to return rgba for basic named colors
+      const map = { green: '0,128,0', red: '255,0,0', blue: '0,0,255', black: '0,0,0' };
+      const rgb = map[colorName] || '0,0,0';
+      return `rgba(${rgb},${alpha})`;
+    }
 
-    document.getElementById("clearBtn").addEventListener("click", () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function redrawAll(recorded = events, loaded = overlays){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // draw imported overlays first
+      for(const tr of loaded) renderTrace(tr, true);
+      // then recorded events
+      renderTrace(recorded, false);
+    }
+
+    function logEvent(type, e){
+      // type: 'move' | 'down' | 'up'
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const evt = { x: Math.round(x), y: Math.round(y), t: Date.now(), type, button: (typeof e.button === 'number' ? e.button : -1) };
+
+      // store only move/down/up as in JSON
+      events.push(evt);
+
+      // draw immediately for responsiveness
+      if(type === 'move') drawPoint(evt.x, evt.y, 'black', 2);
+      else if(type === 'down'){
+        const color = evt.button === 0 ? 'green' : evt.button === 2 ? 'red' : 'blue';
+        drawPoint(evt.x, evt.y, color, 5);
+      }
+    }
+
+    // attach pointer events to both canvas and button so clicks on button are drawn to canvas
+    function attachPointerListeners(target){
+      target.addEventListener('pointermove', e => logEvent('move', e));
+      target.addEventListener('pointerdown', e => { logEvent('down', e); });
+      target.addEventListener('pointerup', e => { logEvent('up', e); });
+    }
+
+    attachPointerListeners(canvas);
+    attachPointerListeners(centerButton);
+
+    // prevent context menu on canvas so right-clicks can be captured without menu
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    clearBtn.addEventListener('click', () => {
       events = [];
+      overlays = [];
+      ctx.clearRect(0,0,canvas.width,canvas.height);
     });
 
-    document.getElementById("exportBtn").addEventListener("click", () => {
+    exportBtn.addEventListener('click', () => {
       const data = { meta: { created: new Date().toISOString() }, trace: events };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "trace.json";
-      a.click();
-      URL.revokeObjectURL(url);
+      const a = document.createElement('a'); a.href = url; a.download = `trace-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
     });
 
-    const importInput = document.getElementById("importFile");
-    document.getElementById("importBtn").addEventListener("click", () => importInput.click());
-    importInput.addEventListener("change", () => {
-      const file = importInput.files[0];
-      if (!file) return;
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', () => {
+      const f = importFile.files[0]; if(!f) return;
       const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data.trace) renderTrace(data.trace);
-        } catch (err) {
-          alert("Ошибка при загрузке JSON");
-        }
+      reader.onload = ev => {
+        try{
+          const obj = JSON.parse(ev.target.result);
+          if(Array.isArray(obj.trace)){
+            overlays.push(obj.trace.map(x => Object.assign({}, x)));
+            redrawAll();
+          } else alert('Файл не содержит поле trace[]');
+        }catch(err){ alert('Ошибка парсинга JSON: '+err.message); }
       };
-      reader.readAsText(file);
+      reader.readAsText(f);
     });
 
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    // optional: allow Playwright to focus and click button via selector
+    centerButton.addEventListener('click', () => {
+      // no-op; clicks are recorded via pointerdown/pointerup listeners
     });
+
   </script>
 </body>
 </html>
