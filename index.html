@@ -1,67 +1,68 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Mouse Tracker Test</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    html,body{height:100%;margin:0}
-    body {
-      margin: 0;
-      padding: 0;
-      background: white;
-      overflow: hidden;
-      font-family: Inter, system-ui, sans-serif;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none; /* холст не блокирует события */
-    }
-    #centerButton {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 120px;
-      height: 40px;
-      line-height: 40px;
-      border-radius: 20px; /* овальная */
-      font-size: 15px;
-      z-index: 2;
-      cursor: pointer;
-      user-select: none;
-    }
-    #controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.95);
-      padding: 8px;
-      border-radius: 6px;
-      z-index: 3;
-      display: flex;
-      gap:6px;
-      align-items:center;
-    }
-    button.ctrl{padding:6px 10px}
-  </style>
+    <meta charset="UTF-8">
+    <title>Mouse Tracker Test</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        html,body{height:100%;margin:0}
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+            overflow: hidden;
+            font-family: Inter, system-ui, sans-serif;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Увеличим z-index чтобы canvas был над кнопкой */
+            pointer-events: none; /* холст не блокирует события */
+        }
+        #centerButton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 30px;
+            line-height: 40px;
+            border-radius: 20px; /* овальная */
+            font-size: 12px;
+            z-index: 0; /* Уменьшим z-index кнопки */
+            cursor: pointer;
+            user-select: none;
+            pointer-events: auto; /* Кнопка должна обрабатывать события */
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 8px;
+            border-radius: 6px;
+            z-index: 3;
+            display: flex;
+            gap:6px;
+            align-items:center;
+        }
+        button.ctrl{padding:6px 10px}
+    </style>
 </head>
 <body>
-  <canvas id="tracker"></canvas>
-  <button id="centerButton">Нажми меня</button>
-  <div id="controls">
+<canvas id="tracker"></canvas>
+<button id="centerButton">Нажми</button>
+<div id="controls">
     <button id="clearBtn" class="ctrl">Очистить</button>
     <button id="exportBtn" class="ctrl">Экспорт JSON</button>
     <input type="file" id="importFile" style="display:none" accept="application/json" />
     <button id="importBtn" class="ctrl">Импорт JSON</button>
-  </div>
+</div>
 
-  <script>
+<script>
     const canvas = document.getElementById('tracker');
     const ctx = canvas.getContext('2d');
     const centerButton = document.getElementById('centerButton');
@@ -75,105 +76,109 @@
     let overlays = [];
 
     function fitCanvas(){
-      const prevEvents = events.slice();
-      const prevOverlays = overlays.slice();
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      redrawAll(prevEvents, prevOverlays);
+        const prevEvents = events.slice();
+        const prevOverlays = overlays.slice();
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        redrawAll(prevEvents, prevOverlays);
     }
 
     window.addEventListener('resize', fitCanvas);
     fitCanvas();
 
     function drawPoint(x,y,color='black',r=2){
-      ctx.beginPath();
-      ctx.arc(x,y,r,0,Math.PI*2);
-      ctx.fillStyle = color;
-      ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fillStyle = color;
+        ctx.fill();
     }
 
     function colorWithAlpha(name, a){
-      const map = { green: '0,128,0', red: '255,0,0', blue: '0,0,255', black: '0,0,0' };
-      const rgb = map[name] || '0,0,0';
-      return `rgba(${rgb},${a})`;
+        const map = { green: '0,128,0', red: '255,0,0', blue: '0,0,255', black: '0,0,0' };
+        const rgb = map[name] || '0,0,0';
+        return `rgba(${rgb},${a})`;
     }
 
     function renderTrace(trace, asOverlay=false){
-      if(!trace || !trace.length) return;
-      for(const ev of trace){
-        if(ev.type === 'move'){
-          const col = asOverlay ? colorWithAlpha('black',0.2) : 'black';
-          drawPoint(ev.x, ev.y, col, 2);
-        } else if(ev.type === 'down'){
-          const base = ev.button === 0 ? 'green' : ev.button === 2 ? 'red' : 'blue';
-          const col = asOverlay ? colorWithAlpha(base,0.35) : base;
-          drawPoint(ev.x, ev.y, col, 5);
+        if(!trace || !trace.length) return;
+        for(const ev of trace){
+            if(ev.type === 'move'){
+                const col = asOverlay ? colorWithAlpha('black',0.2) : 'black';
+                drawPoint(ev.x, ev.y, col, 2);
+            } else if(ev.type === 'down'){
+                const base = ev.button === 0 ? 'green' : ev.button === 2 ? 'red' : 'blue';
+                const col = asOverlay ? colorWithAlpha(base,0.35) : base;
+                drawPoint(ev.x, ev.y, col, 5);
+            }
         }
-      }
     }
 
     function redrawAll(recorded = events, loaded = overlays){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      for(const tr of loaded) renderTrace(tr, true);
-      renderTrace(recorded, false);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(const tr of loaded) renderTrace(tr, true);
+        renderTrace(recorded, false);
     }
 
     function logEvent(type, e){
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.round(e.clientX - rect.left);
-      const y = Math.round(e.clientY - rect.top);
-      const evt = { x, y, t: Date.now(), type, button: (typeof e.button === 'number' ? e.button : -1) };
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.round(e.clientX - rect.left);
+        const y = Math.round(e.clientY - rect.top);
+        const evt = { x, y, t: Date.now(), type, button: (typeof e.button === 'number' ? e.button : -1) };
 
-      events.push(evt);
+        events.push(evt);
 
-      if(type === 'move') drawPoint(x,y,'black',2);
-      else if(type === 'down'){
-        const color = evt.button === 0 ? 'green' : evt.button === 2 ? 'red' : 'blue';
-        drawPoint(x,y,color,5);
-      }
+        if(type === 'move') drawPoint(x,y,'black',2);
+        else if(type === 'down'){
+            const color = evt.button === 0 ? 'green' : evt.button === 2 ? 'red' : 'blue';
+            drawPoint(x,y,color,5);
+        }
     }
 
     function attachPointerListeners(target){
-      target.addEventListener('pointermove', e => logEvent('move', e));
-      target.addEventListener('pointerdown', e => { e.preventDefault(); logEvent('down', e); });
-      target.addEventListener('pointerup', e => { e.preventDefault(); logEvent('up', e); });
+        target.addEventListener('pointermove', e => logEvent('move', e));
+        target.addEventListener('pointerdown', e => { e.preventDefault(); logEvent('down', e); });
+        target.addEventListener('pointerup', e => { e.preventDefault(); logEvent('up', e); });
     }
 
+    // Вешаем обработчики на весь документ
     attachPointerListeners(document);
+
+    // Также вешаем обработчики на саму кнопку
+    attachPointerListeners(centerButton);
 
     document.addEventListener('contextmenu', e => e.preventDefault());
 
     clearBtn.addEventListener('click', () => {
-      events = [];
-      overlays = [];
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+        events = [];
+        overlays = [];
+        ctx.clearRect(0,0,canvas.width,canvas.height);
     });
 
     exportBtn.addEventListener('click', () => {
-      const data = { meta: { created: new Date().toISOString() }, trace: events };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `trace-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+        const data = { meta: { created: new Date().toISOString() }, trace: events };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `trace-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
     });
 
     importBtn.addEventListener('click', () => importFile.click());
     importFile.addEventListener('change', () => {
-      const f = importFile.files[0]; if(!f) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try{
-          const obj = JSON.parse(ev.target.result);
-          if(Array.isArray(obj.trace)){
-            overlays.push(obj.trace.map(x => ({ ...x })));
-            redrawAll();
-          } else alert('Файл не содержит поле trace[]');
-        }catch(err){ alert('Ошибка парсинга JSON: '+err.message); }
-      };
-      reader.readAsText(f);
+        const f = importFile.files[0]; if(!f) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try{
+                const obj = JSON.parse(ev.target.result);
+                if(Array.isArray(obj.trace)){
+                    overlays.push(obj.trace.map(x => ({ ...x })));
+                    redrawAll();
+                } else alert('Файл не содержит поле trace[]');
+            }catch(err){ alert('Ошибка парсинга JSON: '+err.message); }
+        };
+        reader.readAsText(f);
     });
 
     centerButton.addEventListener('click', () => {});
 
-  </script>
+</script>
 </body>
 </html>
