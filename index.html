@@ -24,17 +24,15 @@
         }
         #centerButton {
             position: absolute;
-            top: 50%;
-            left: 50%;
             width: 60px;
             height: 30px;
             line-height: 40px;
-            border-radius: 20px; /* овальная */
+            border-radius: 20px;
             font-size: 12px;
-            z-index: 0; /* Уменьшим z-index кнопки */
+            z-index: 0;
             cursor: pointer;
             user-select: none;
-            pointer-events: auto; /* Кнопка должна обрабатывать события */
+            pointer-events: auto;
         }
         #controls {
             position: absolute;
@@ -197,7 +195,8 @@
     centerButton.addEventListener('click', () => {
     moveButtonRandom();
 });
-
+    
+moveButtonRandom();
 </script>
 </body>
 </html>
