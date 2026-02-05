@@ -158,9 +158,6 @@
     // Вешаем обработчики на весь документ
     attachPointerListeners(document);
 
-    // Также вешаем обработчики на саму кнопку
-    attachPointerListeners(centerButton);
-
     document.addEventListener('contextmenu', e => e.preventDefault());
 
     clearBtn.addEventListener('click', () => {
