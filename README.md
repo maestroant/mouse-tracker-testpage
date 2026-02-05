@@ -1,6 +1,6 @@
 # 🖱️ Mouse Tracker & Moving Button Demo
 
-[url tracker](https://maestroant.github.io/mouse-tracker-testpage)
+[URL Tracker](https://maestroant.github.io/mouse-tracker-testpage)
 
 Интерактивная веб-страница для **записи поведения пользователя**, визуализации траектории указателя и тестирования реакций на динамические UI-элементы.
 
