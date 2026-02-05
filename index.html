@@ -26,7 +26,6 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
             width: 60px;
             height: 30px;
             line-height: 40px;
@@ -91,6 +90,24 @@
         ctx.arc(x,y,r,0,Math.PI*2);
         ctx.fillStyle = color;
         ctx.fill();
+    }
+
+    function moveButtonRandom() {
+        const btn = centerButton;
+    
+        const btnW = btn.offsetWidth;
+        const btnH = btn.offsetHeight;
+    
+        const padding = 10;
+    
+        const maxX = window.innerWidth - btnW - padding;
+        const maxY = window.innerHeight - btnH - padding;
+    
+        const x = Math.floor(Math.random() * maxX);
+        const y = Math.floor(Math.random() * maxY);
+    
+        btn.style.left = x + 'px';
+        btn.style.top = y + 'px';
     }
 
     function colorWithAlpha(name, a){
@@ -177,7 +194,9 @@
         reader.readAsText(f);
     });
 
-    centerButton.addEventListener('click', () => {});
+    centerButton.addEventListener('click', () => {
+    moveButtonRandom();
+});
 
 </script>
 </body>
