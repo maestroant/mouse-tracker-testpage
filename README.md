@@ -2,63 +2,63 @@
 
 👉🏼 [URL Tracker](https://maestroant.github.io/mouse-tracker-testpage)
 
-Интерактивная веб-страница для **записи поведения пользователя**, визуализации траектории указателя и тестирования реакций на динамические UI-элементы.
+An interactive web page for **recording user behavior**, visualizing pointer trajectories, and testing reactions to dynamic UI elements.
 
-Проект объединяет:
-- трекинг движений и кликов мыши / тача
-- визуализацию на `<canvas>`
-- интерактивную кнопку, случайно меняющую позицию
-- архитектуру, готовую для **behavioral analysis / anti-bot сценариев**
+The project combines:
+- mouse / touch movement and click tracking
+- visualization on `<canvas>`
+- an interactive button that randomly changes its position
+- an architecture ready for **behavioral analysis / anti-bot scenarios**
 
 ---
 
-## ✨ Возможности
+## ✨ Features
 
-- 📍 **Запись траектории указателя**
+- 📍 **Pointer trajectory recording**
   - `pointermove`, `pointerdown`, `pointerup`
-  - координаты, время, источник события
+  - coordinates, timestamps, event source
 
-- 🎨 **Визуализация**
-  - точки движения — чёрные
-  - клики — зелёные
-  - отрисовка в реальном времени на canvas
+- 🎨 **Visualization**
+  - movement points — black
+  - clicks — green
+  - real-time rendering on canvas
 
-- 🔘 **Интерактивная кнопка**
-  - при нажатии появляется в случайной позиции
-  - не выходит за пределы экрана
-  - не конфликтует с трекингом
+- 🔘 **Interactive button**
+  - moves to a random position when clicked
+  - never goes outside the viewport
+  - does not conflict with tracking logic
 
-- 🧠 **Чистая архитектура событий**
-  - `document` — глобальный трекинг
-  - `button` — пассивное логирование
-  - управление поведением отделено от логирования
-
----
-
-## 🏗️ Архитектура
-
-### Разделение ответственности
-
-| Компонент | Назначение |
-|---------|-----------|
-| `document` listeners | Глобальный сбор поведения |
-| `button` listeners | Логирование событий кнопки |
-| `moveButtonRandom()` | Управление UI |
-| `logEvent()` | Централизованная запись событий |
-| `canvas` | Визуализация |
-
-### Почему так сделано
-
-- `preventDefault()` используется **только там, где допустимо**
-- кнопка остаётся полностью интерактивной
-- события не теряются и не дублируются
-- код легко расширяется под аналитику
+- 🧠 **Clean event architecture**
+  - `document` — global tracking
+  - `button` — passive event logging
+  - behavior control is separated from logging
 
 ---
 
-## 📂 Структура данных события
+## 🏗️ Architecture
 
-Каждое событие сохраняется в массив `events`:
+### Responsibility separation
+
+| Component | Purpose |
+|---------|---------|
+| `document` listeners | Global behavior collection |
+| `button` listeners | Button event logging |
+| `moveButtonRandom()` | UI behavior control |
+| `logEvent()` | Centralized event recording |
+| `canvas` | Visualization layer |
+
+### Design rationale
+
+- `preventDefault()` is used **only where appropriate**
+- the button remains fully interactive
+- events are neither lost nor duplicated
+- the codebase is easy to extend for analytics
+
+---
+
+## 📂 Event data structure
+
+Each event is stored in the `events` array:
 
 ```json
 {
@@ -68,4 +68,3 @@
   "t": 1738600000000,
   "target": "button"
 }
-
