@@ -192,9 +192,10 @@
         reader.readAsText(f);
     });
 
-    centerButton.addEventListener('click', () => {
-    moveButtonRandom();
-});
+    centerButton.addEventListener('pointerdown', e => {
+        e.stopPropagation();   // важно
+        moveButtonRandom();
+    });
     
 moveButtonRandom();
 </script>
