@@ -32,6 +32,18 @@
             /* холст не блокирует события */
         }
 
+        .trusted-indicator {
+            margin-left: 10px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+        .trusted-true {
+            color: #2ecc71;
+        }
+        .trusted-false {
+            color: #e74c3c;
+        }
+
         #centerButton {
             position: absolute;
             width: 42px;
@@ -75,6 +87,9 @@
         <button id="exportBtn" class="ctrl">Export JSON</button>
         <input type="file" id="importFile" style="display:none" accept="application/json" />
         <button id="importBtn" class="ctrl">Import JSON</button>
+        <span id="trustedIndicator" class="trusted-indicator">
+            isTrusted = 
+        </span>
     </div>
 
     <script>
@@ -164,7 +179,13 @@
 
         function attachPointerListeners(target) {
             target.addEventListener('pointermove', e => logEvent('move', e));
-            target.addEventListener('pointerdown', e => { e.preventDefault(); logEvent('down', e); });
+            target.addEventListener('pointerdown', e => { 
+                e.preventDefault(); logEvent('down', e);
+                if (target == centerButton) {
+                    const indicator = document.getElementById('trustedIndicator');
+                    indicator.innerText = `isTrusted = ${e.isTrusted}`;        
+                } 
+            });
             target.addEventListener('pointerup', e => { 
                 e.preventDefault(); logEvent('up', e); 
                 if (target == centerButton) {
