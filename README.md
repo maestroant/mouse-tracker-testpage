@@ -1,6 +1,7 @@
 # 🖱️ Mouse Tracker & Moving Button Demo
 
-👉🏼 [URL Tracker](https://maestroant.github.io/mouse-tracker-testpage)
+👉🏼 [Mause Tracker](https://maestroant.github.io/mouse-tracker-testpage)
+👉🏼 [Input Tracker](https://maestroant.github.io/mouse-tracker-testpage/input.html)
 
 An interactive web page for **recording user behavior**, visualizing pointer trajectories, and testing reactions to dynamic UI elements.
 
