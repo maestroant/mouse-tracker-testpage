@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Scroll + Mouse Trace Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .block {
+            height: 600px;
+            border-bottom: 1px solid #ddd;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .footer {
+            padding: 40px;
+            background: #f5f5f5;
+            border-top: 2px solid #ccc;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Canvas поверх всего */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="tracker"></canvas>
+
+    <!-- Длинная страница -->
+    <div class="block">Block 1</div>
+    <div class="block">Block 2</div>
+    <div class="block">Block 3</div>
+    <div class="block">Block 4</div>
+    <div class="block">Block 5</div>
+    <div class="block">Block 6</div>
+    <div class="block">Block 7</div>
+    <div class="block">Block 8</div>
+    <div class="block">Block 9</div>
+
+    <!-- Низ страницы -->
+    <div class="footer">
+        <h3>Form at the very bottom of the page</h3>
+
+        <div class="input-wrapper">
+            <input id="messageInput" type="text" placeholder="Enter text..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tracker');
+        const ctx = canvas.getContext('2d');
+
+        function fitCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', fitCanvas);
+        fitCanvas();
+
+        function drawPoint(x, y, color = 'black', r = 2) {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function logEvent(type, e) {
+            const x = Math.round(e.clientX);
+            const y = Math.round(e.clientY);
+
+            if (type === 'move') {
+                drawPoint(x, y, 'black', 2);
+            }
+
+            if (type === 'down') {
+                const color =
+                    e.button === 0 ? 'green' :
+                        e.button === 2 ? 'red' :
+                            'blue';
+
+                drawPoint(x, y, color, 6);
+            }
+        }
+
+        document.addEventListener('pointermove', e => logEvent('move', e));
+        document.addEventListener('pointerdown', e => logEvent('down', e));
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        document.getElementById("sendButton").addEventListener("click", () => {
+            alert("Sent: " + document.getElementById("messageInput").value);
+        });
+    </script>
+
+</body>
+
+</html>
